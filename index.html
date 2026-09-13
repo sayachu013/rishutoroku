@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高度版 単位・科目管理アプリ</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1, h2 { color: #2c3e50; margin-top: 0; }
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .tab-btn.active {
+            background: #3498db;
+            color: white;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .form-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            align-items: center;
+        }
+        input, select {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input[type="text"] { flex: 2; min-width: 150px; }
+        input[type="number"] { width: 90px; }
+        select { flex: 1; min-width: 120px; }
+
+        button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #2980b9; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        th { background-color: #f8f9fa; }
+
+        .remaining-zero { color: #27ae60; font-weight: bold; }
+        .remaining-positive { color: #e74c3c; font-weight: bold; }
+        
+        .delete-btn {
+            background-color: #e74c3c;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .delete-btn:hover { background-color: #c0392b; }
+
+        .checkbox-cell { transform: scale(1.2); cursor: pointer; }
+        .save-banner {
+            font-size: 12px;
+            color: #27ae60;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎓 単位・科目数 統合管理システム</h1>
+
+    <!-- タブ切り替え -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('main')">📚 授業・進捗管理</button>
+        <button class="tab-btn" onclick="switchTab('settings')">⚙️ 卒業要件設定（管理者用）</button>
+    </div>
+
+    <!-- メイン画面：授業・進捗管理 -->
+    <div id="tab-main" class="tab-content active">
+        <!-- 1. 残り要件進捗 -->
+        <div class="card">
+            <h2>📊 残り単位数・必要科目数 進捗</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ジャンル</th>
+                        <th>要件単位</th>
+                        <th>修得済み単位 (残り)</th>
+                        <th>要件科目数</th>
+                        <th>修得済み科目数 (残り)</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryList"></tbody>
+            </table>
+        </div>
+
+        <!-- 2. 授業追加 -->
+        <div class="card">
+            <h2>➕ 授業の登録</h2>
+            <div class="form-group">
+                <input type="text" id="courseName" placeholder="授業名 (例: 英語コミュニケーション)">
+                <select id="courseCategory"></select>
+                <input type="number" id="courseCredit" value="2" min="1" placeholder="単位数">
+                <button onclick="addCourse()">授業を追加</button>
+            </div>
+        </div>
+
+        <!-- 3. 授業一覧 -->
+        <div class="card">
+            <h2>📚 登録済み授業一覧</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>修得</th>
+                        <th>授業名</th>
+                        <th>ジャンル</th>
+                        <th>単位数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="courseList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 設定画面：卒業要件の設定 -->
+    <div id="tab-settings" class="tab-content">
+        <div class="card">
+            <h2>⚙️ ジャンルごとの卒業要件設定</h2>
+            <p style="font-size: 13px; color: #666;">各ジャンルで必要な「最小単位数」と「最小科目数」を設定・変更できます。</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ジャンル名</th>
+                        <th>必要単位数</th>
+                        <th>必要科目数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="requirementsList"></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>➕ 新しいジャンルの追加</h2>
+            <div class="form-group">
+                <input type="text" id="newCatName" placeholder="ジャンル名 (例: 専門選択必修)">
+                <input type="number" id="newCatCredit" placeholder="必要単位" min="0">
+                <input type="number" id="newCatCount" placeholder="必要科目数" min="0">
+                <button onclick="addCategory()">ジャンルを追加</button>
+            </div>
+            <div id="saveMsg" class="save-banner">✔ 設定を自動保存しました</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // デフォルト要件データ（LocalStorageがない場合の初期値）
+    const defaultRequirements = [
+        { name: '必修', targetCredit: 20, targetCount: 10 },
+        { name: '選択', targetCredit: 30, targetCount: 15 },
+        { name: '言語', targetCredit: 8, targetCount: 4 },
+        { name: '教養', targetCredit: 16, targetCount: 8 }
+    ];
+
+    // LocalStorageからの読み込み・自動復元
+    let requirements = JSON.parse(localStorage.getItem('app_requirements')) || defaultRequirements;
+    let courses = JSON.parse(localStorage.getItem('app_courses')) || [];
+
+    // データ保存関数（すべての変更時に自動呼び出し）
+    function saveData() {
+        localStorage.setItem('app_requirements', JSON.stringify(requirements));
+        localStorage.setItem('app_courses', JSON.stringify(courses));
+        showSaveNotice();
+    }
+
+    function showSaveNotice() {
+        const msg = document.getElementById('saveMsg');
+        msg.style.display = 'block';
+        setTimeout(() => { msg.style.display = 'none'; }, 2000);
+    }
+
+    // タブ切り替え
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        if (tabName === 'main') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-main').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tab-settings').classList.add('active');
+        }
+        render();
+    }
+
+    // 全体描画
+    function render() {
+        renderCategorySelect();
+        renderSummary();
+        renderCourses();
+        renderRequirementsSettings();
+    }
+
+    // セレクトボックスの動的生成
+    function renderCategorySelect() {
+        const select = document.getElementById('courseCategory');
+        select.innerHTML = '';
+        requirements.forEach(req => {
+            const opt = document.createElement('option');
+            opt.value = req.name;
+            opt.textContent = req.name;
+            select.appendChild(opt);
+        });
+    }
+
+    // メイン進捗テーブル描画
+    function renderSummary() {
+        const tbody = document.getElementById('summaryList');
+        tbody.innerHTML = '';
+
+        // ジャンルごとの修得集計
+        const stats = {};
+        requirements.forEach(r => {
+            stats[r.name] = { earnedCredit: 0, earnedCount: 0 };
+        });
+
+        courses.forEach(c => {
+            if (c.earned && stats[c.category]) {
+                stats[c.category].earnedCredit += c.credit;
+                stats[c.category].earnedCount += 1;
+            }
+        });
+
+        // テーブル生成
+        requirements.forEach(req => {
+            const earnedCredit = stats[req.name] ? stats[req.name].earnedCredit : 0;
+            const earnedCount = stats[req.name] ? stats[req.name].earnedCount : 0;
+            
+            const remCredit = Math.max(0, req.targetCredit - earnedCredit);
+            const remCount = Math.max(0, req.targetCount - earnedCount);
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${escapeHtml(req.name)}</strong></td>
+                <td>${req.targetCredit} 単位</td>
+                <td class="${remCredit === 0 ? 'remaining-zero' : 'remaining-positive'}">
+                    ${earnedCredit} 単位 (${remCredit === 0 ? '達成🎉' : 'あと ' + remCredit + ' 単位'})
+                </td>
+                <td>${req.targetCount} 科目</td>
+                <td class="${remCount === 0 ? 'remaining-zero' : 'remaining-positive'}">
+                    ${earnedCount} 科目 (${remCount === 0 ? '達成🎉' : 'あと ' + remCount + ' 科目'})
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 授業一覧描画
+    function renderCourses() {
+        const tbody = document.getElementById('courseList');
+        tbody.innerHTML = '';
+
+        courses.forEach((course, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="checkbox" class="checkbox-cell" ${course.earned ? 'checked' : ''} onchange="toggleEarned(${index})"></td>
+                <td><strong>${escapeHtml(course.name)}</strong></td>
+                <td>${escapeHtml(course.category)}</td>
+                <td>${course.credit} 単位</td>
+                <td><button class="delete-btn" onclick="deleteCourse(${index})">削除</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 管理設定画面の要件テーブル描画
+    function renderRequirementsSettings() {
+        const tbody = document.getElementById('requirementsList');
+        tbody.innerHTML = '';
+
+        requirements.forEach((req, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${escapeHtml(req.name)}</strong></td>
+                <td><input type="number" value="${req.targetCredit}" min="0" onchange="updateReqCredit(${index}, this.value)"> 単位</td>
+                <td><input type="number" value="${req.targetCount}" min="0" onchange="updateReqCount(${index}, this.value)"> 科目</td>
+                <td><button class="delete-btn" onclick="deleteCategory(${index})">ジャンル削除</button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // 操作関数
+    function addCourse() {
+        const name = document.getElementById('courseName').value.trim();
+        const category = document.getElementById('courseCategory').value;
+        const credit = parseInt(document.getElementById('courseCredit').value, 10);
+
+        if (!name || isNaN(credit) || credit <= 0) {
+            alert('正しい授業名と単位数を入力してください。');
+            return;
+        }
+
+        courses.push({ name, category, credit, earned: false });
+        document.getElementById('courseName').value = '';
+        saveData();
+        render();
+    }
+
+    function toggleEarned(index) {
+        courses[index].earned = !courses[index].earned;
+        saveData();
+        render();
+    }
+
+    function deleteCourse(index) {
+        if (confirm(`「${courses[index].name}」を削除しますか？`)) {
+            courses.splice(index, 1);
+            saveData();
+            render();
+        }
+    }
+
+    function updateReqCredit(index, val) {
+        requirements[index].targetCredit = Math.max(0, parseInt(val, 10) || 0);
+        saveData();
+        renderSummary();
+    }
+
+    function updateReqCount(index, val) {
+        requirements[index].targetCount = Math.max(0, parseInt(val, 10) || 0);
+        saveData();
+        renderSummary();
+    }
+
+    function addCategory() {
+        const name = document.getElementById('newCatName').value.trim();
+        const credit = parseInt(document.getElementById('newCatCredit').value, 10);
+        const count = parseInt(document.getElementById('newCatCount').value, 10);
+
+        if (!name || isNaN(credit) || isNaN(count)) {
+            alert('ジャンル名、必要単位、必要科目数を正しく入力してください。');
+            return;
+        }
+
+        requirements.push({ name, targetCredit: credit, targetCount: count });
+        document.getElementById('newCatName').value = '';
+        document.getElementById('newCatCredit').value = '';
+        document.getElementById('newCatCount').value = '';
+        saveData();
+        render();
+    }
+
+    function deleteCategory(index) {
+        if (confirm(`ジャンル「${requirements[index].name}」を削除しますか？`)) {
+            requirements.splice(index, 1);
+            saveData();
+            render();
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // 初回初期化
+    render();
+</script>
+
+</body>
+</html>
