@@ -5,37 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>年度・学期対応 単位・科目管理アプリ</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
             background-color: #f0f2f5;
             margin: 0;
-            padding: 20px;
+            padding: 12px;
             color: #333;
         }
         .container {
             max-width: 950px;
             margin: 0 auto;
         }
-        h1, h2 { color: #2c3e50; margin-top: 0; }
+        h1 {
+            color: #2c3e50;
+            margin-top: 5px;
+            font-size: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 16px;
+        }
         .card {
             background: #ffffff;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 25px;
+            margin-bottom: 15px;
         }
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 15px;
         }
         .tab-btn {
-            padding: 10px 20px;
+            flex: 1;
+            padding: 12px 8px;
             background: #e0e0e0;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 13px;
+            text-align: center;
         }
         .tab-btn.active {
             background: #3498db;
@@ -46,86 +62,124 @@
 
         .filter-bar {
             background-color: #e8f4fc;
-            padding: 15px;
+            padding: 12px;
             border-radius: 6px;
             display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
         }
-        .filter-bar label { font-weight: bold; color: #2c3e50; }
+        .filter-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-bar label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 14px;
+            white-space: nowrap;
+        }
         
         .form-group {
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            flex-wrap: wrap;
             margin-top: 10px;
-            align-items: center;
         }
+        
         input, select {
-            padding: 8px 12px;
+            padding: 12px;
             border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
+            border-radius: 5px;
+            font-size: 15px;
+            width: 100%;
         }
-        input[type="text"] { flex: 2; min-width: 150px; }
-        input[type="number"] { width: 90px; }
-        select { flex: 1; min-width: 120px; }
 
-        button {
-            padding: 8px 16px;
+        button.action-btn {
+            width: 100%;
+            padding: 12px;
             background-color: #3498db;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 15px;
         }
-        button:hover { background-color: #2980b9; }
+        button.action-btn:hover { background-color: #2980b9; }
 
+        /* スマホ向け横スクロール可能テーブル */
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 5px;
+            min-width: 500px; /* 横崩れ防止 */
         }
         th, td {
-            padding: 10px;
+            padding: 10px 6px;
             text-align: center;
             border-bottom: 1px solid #eee;
+            font-size: 13px;
         }
-        th { background-color: #f8f9fa; }
+        th { background-color: #f8f9fa; white-space: nowrap; }
 
         .remaining-zero { color: #27ae60; font-weight: bold; }
         .remaining-positive { color: #e74c3c; font-weight: bold; }
         
         .delete-btn {
             background-color: #e74c3c;
-            padding: 4px 8px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
             font-size: 12px;
+            cursor: pointer;
         }
         .delete-btn:hover { background-color: #c0392b; }
 
-        .checkbox-cell { transform: scale(1.2); cursor: pointer; }
+        .checkbox-cell {
+            transform: scale(1.4);
+            cursor: pointer;
+        }
         .term-badge {
             display: inline-block;
             background: #eef2f7;
-            padding: 2px 8px;
+            padding: 3px 6px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             color: #555;
+            white-space: nowrap;
+        }
+        
+        /* PCやタブレットなど広い画面向けの調整 */
+        @media (min-width: 600px) {
+            .filter-bar {
+                flex-direction: row;
+                align-items: center;
+            }
+            .form-group {
+                flex-direction: row;
+            }
+            input[type="text"] { flex: 2; }
+            select { flex: 1; }
+            button.action-btn { width: auto; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🎓 単位・学期別履修管理システム</h1>
+    <h1>🎓 単位・学期別履修管理</h1>
 
     <!-- タブ切替 -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('main')">📚 授業・進捗管理</button>
-        <button class="tab-btn" onclick="switchTab('settings')">⚙️ 要件設定（管理画面）</button>
+        <button class="tab-btn active" onclick="switchTab('main')">📚 授業・進捗</button>
+        <button class="tab-btn" onclick="switchTab('settings')">⚙️ 要件設定</button>
     </div>
 
     <!-- メイン画面：授業・進捗管理 -->
@@ -133,32 +187,36 @@
         
         <!-- 学期フィルター選択 -->
         <div class="filter-bar">
-            <label for="filterYear">📅 表示対象:</label>
-            <select id="filterYear" onchange="render()"></select>
-            <select id="filterSemester" onchange="render()">
-                <option value="ALL">通算（全期間の合計）</option>
-                <option value="春学期">春学期</option>
-                <option value="秋学期">秋学期</option>
-                <option value="集中講義">集中講義</option>
-            </select>
-            <span style="font-size: 12px; color: #666;">※卒業進捗は「通算」で全学期の修得状況を集計します。</span>
+            <div class="filter-row">
+                <label for="filterYear">📅 表示対象:</label>
+                <select id="filterYear" onchange="render()"></select>
+                <select id="filterSemester" onchange="render()">
+                    <option value="ALL">通算（全期間）</option>
+                    <option value="春学期">春学期</option>
+                    <option value="秋学期">秋学期</option>
+                    <option value="集中講義">集中講義</option>
+                </select>
+            </div>
+            <div style="font-size: 11px; color: #666;">※卒業進捗は全学期の修得状況を「通算」で集計します。</div>
         </div>
 
         <!-- 1. 全体進捗 -->
         <div class="card">
             <h2>📊 卒業必要条件と修得進捗</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ジャンル</th>
-                        <th>要件単位</th>
-                        <th>修得済み単位 (残り)</th>
-                        <th>要件科目数</th>
-                        <th>修得済み科目数 (残り)</th>
-                    </tr>
-                </thead>
-                <tbody id="summaryList"></tbody>
-            </table>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ジャンル</th>
+                            <th>要件単位</th>
+                            <th>修得済 (残り)</th>
+                            <th>要件科目</th>
+                            <th>修得済 (残り)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryList"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- 2. 授業登録 -->
@@ -174,26 +232,28 @@
                 <input type="text" id="courseName" placeholder="授業名 (例: ミクロ経済学)">
                 <select id="courseCategory"></select>
                 <input type="number" id="courseCredit" value="2" min="1" placeholder="単位数">
-                <button onclick="addCourse()">授業を追加</button>
+                <button class="action-btn" onclick="addCourse()">授業を追加</button>
             </div>
         </div>
 
         <!-- 3. 授業一覧 -->
         <div class="card">
-            <h2>📚 登録授業一覧 <span id="currentFilterLabel" style="font-size: 14px; font-weight: normal; color: #666;"></span></h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>修得</th>
-                        <th>開講時期</th>
-                        <th>授業名</th>
-                        <th>ジャンル</th>
-                        <th>単位数</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="courseList"></tbody>
-            </table>
+            <h2>📚 登録授業一覧 <span id="currentFilterLabel" style="font-size: 12px; font-weight: normal; color: #666;"></span></h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>修得</th>
+                            <th>開講時期</th>
+                            <th>授業名</th>
+                            <th>ジャンル</th>
+                            <th>単位</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="courseList"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -201,17 +261,19 @@
     <div id="tab-settings" class="tab-content">
         <div class="card">
             <h2>⚙️ ジャンルごとの卒業要件設定</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ジャンル名</th>
-                        <th>必要単位数</th>
-                        <th>必要科目数</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="requirementsList"></tbody>
-            </table>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ジャンル名</th>
+                            <th>必要単位数</th>
+                            <th>必要科目数</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requirementsList"></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="card">
@@ -220,7 +282,7 @@
                 <input type="text" id="newCatName" placeholder="ジャンル名 (例: 専門選択)">
                 <input type="number" id="newCatCredit" placeholder="必要単位" min="0">
                 <input type="number" id="newCatCount" placeholder="必要科目数" min="0">
-                <button onclick="addCategory()">ジャンルを追加</button>
+                <button class="action-btn" onclick="addCategory()">ジャンルを追加</button>
             </div>
         </div>
     </div>
@@ -318,7 +380,6 @@
         const stats = {};
         requirements.forEach(r => stats[r.name] = { earnedCredit: 0, earnedCount: 0 });
 
-        // 全学期の取得分を集計
         courses.forEach(c => {
             if (c.earned && stats[c.category]) {
                 stats[c.category].earnedCredit += c.credit;
@@ -336,13 +397,13 @@
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td><strong>${escapeHtml(req.name)}</strong></td>
-                <td>${req.targetCredit} 単位</td>
+                <td>${req.targetCredit}</td>
                 <td class="${remCredit === 0 ? 'remaining-zero' : 'remaining-positive'}">
-                    ${earnedCredit} 単位 (${remCredit === 0 ? '達成🎉' : 'あと ' + remCredit + ' 単位'})
+                    ${earnedCredit} (${remCredit === 0 ? '達成🎉' : '残' + remCredit})
                 </td>
-                <td>${req.targetCount} 科目</td>
+                <td>${req.targetCount}</td>
                 <td class="${remCount === 0 ? 'remaining-zero' : 'remaining-positive'}">
-                    ${earnedCount} 科目 (${remCount === 0 ? '達成🎉' : 'あと ' + remCount + ' 科目'})
+                    ${earnedCount} (${remCount === 0 ? '達成🎉' : '残' + remCount})
                 </td>
             `;
             tbody.appendChild(row);
@@ -357,12 +418,10 @@
         const selectedYear = document.getElementById('filterYear').value;
         const selectedSemester = document.getElementById('filterSemester').value;
 
-        // ラベル更新
-        const labelText = `(表示中: ${selectedYear === 'ALL' ? '全年度' : selectedYear + '年度'} / ${selectedSemester === 'ALL' ? '全学期' : selectedSemester})`;
+        const labelText = `(${selectedYear === 'ALL' ? '全年度' : selectedYear + '年度'}/${selectedSemester === 'ALL' ? '全学期' : selectedSemester})`;
         document.getElementById('currentFilterLabel').textContent = labelText;
 
         courses.forEach((course, index) => {
-            // フィルター条件判定
             const matchYear = (selectedYear === 'ALL' || course.year.toString() === selectedYear);
             const matchSemester = (selectedSemester === 'ALL' || course.semester === selectedSemester);
 
@@ -370,10 +429,10 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><input type="checkbox" class="checkbox-cell" ${course.earned ? 'checked' : ''} onchange="toggleEarned(${index})"></td>
-                    <td><span class="term-badge">${course.year} ${course.semester}</span></td>
+                    <td><span class="term-badge">${course.year.toString().slice(-2)} ${course.semester}</span></td>
                     <td><strong>${escapeHtml(course.name)}</strong></td>
                     <td>${escapeHtml(course.category)}</td>
-                    <td>${course.credit} 単位</td>
+                    <td>${course.credit}</td>
                     <td><button class="delete-btn" onclick="deleteCourse(${index})">削除</button></td>
                 `;
                 tbody.appendChild(row);
@@ -390,8 +449,8 @@
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td><strong>${escapeHtml(req.name)}</strong></td>
-                <td><input type="number" value="${req.targetCredit}" min="0" onchange="updateReqCredit(${index}, this.value)"> 単位</td>
-                <td><input type="number" value="${req.targetCount}" min="0" onchange="updateReqCount(${index}, this.value)"> 科目</td>
+                <td><input type="number" value="${req.targetCredit}" min="0" onchange="updateReqCredit(${index}, this.value)" style="width: 70px; text-align: center;"></td>
+                <td><input type="number" value="${req.targetCount}" min="0" onchange="updateReqCount(${index}, this.value)" style="width: 70px; text-align: center;"></td>
                 <td><button class="delete-btn" onclick="deleteCategory(${index})">削除</button></td>
             `;
             tbody.appendChild(row);
